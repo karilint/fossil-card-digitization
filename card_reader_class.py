@@ -1,6 +1,7 @@
 
 import sys
 import os
+import json
 import cv2
 import torch
 import string
@@ -15,9 +16,10 @@ from torchvision import transforms
 
 
 class CardProcessor:
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, to_json=False):
         torch.manual_seed(2)
         self.debug = debug
+        self.to_json = to_json
 
         self.debug_print("Loading models and data...")
 
@@ -173,9 +175,7 @@ class CardProcessor:
         else:
             template_path = "templates/lighttemplate.tif"
         template = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
-#        w, h = template.shape[::-1]
-        w = template.shape[1]
-        h = template.shape[0]
+        w, h = template.shape[::-1]
 
         res = cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED)
         threshold = 0.8
@@ -187,8 +187,8 @@ class CardProcessor:
 
     def sort_results(self, results):
         def get_y_overlap(box1, box2):
-            top1, bottom1 = box1[0][1], box1[2][1]  # y-coordinates of first box
-            top2, bottom2 = box2[0][1], box2[2][1]  # y-coordinates of second box
+            top1, bottom1 = box1[0][1], box1[3][1]  # y-coordinates of first box
+            top2, bottom2 = box2[0][1], box2[3][1]  # y-coordinates of second box
 
             overlap = max(0, min(bottom1, bottom2) - max(top1, top2))
             height1, height2 = bottom1 - top1, bottom2 - top2
@@ -657,9 +657,7 @@ class CardProcessor:
     def card_reader(self, image_path):
         input_img_path = image_path
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-#        w, h = image.shape[::-1]
-        w = image.shape[1]
-        h = image.shape[0]
+        w, h = image.shape[::-1]
 
         self.debug_print("--- Dental Marking Detection ---")
         markings = self.detect_dentals(image_path)
@@ -709,25 +707,30 @@ class CardProcessor:
         if os.path.exists("temp/temp.tif"):
             os.remove("temp/temp.tif")  
 
+        if self.to_json:
+            print("\n--- Converting to JSON output ---")
+            result = {
+                "Image path": input_img_path,
+                "Card type": toc,
+                "Dental markings": "Yes" if markings else "No",
+                "Key-value pairs": {
+                    k: v for k, v in keys_corr.items()
+                }
+            }
+            return json.dumps(result) 
+
 if __name__ == "__main__":
     debug = "--d" in sys.argv
+    to_json = "--j" in sys.argv
         
     # Filter out flags from image paths
     image_paths = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
 
-#    if image_paths:
-#        processor = CardProcessor(debug=debug)
-#        for img_path in image_paths:
-#            print(f"\n==== Processing {img_path} ====")
-#            processor.card_reader(img_path)
     if image_paths:
-        processor = CardProcessor(debug=debug)
+        processor = CardProcessor(debug=debug, to_json=to_json)
         for img_path in image_paths:
-            if os.path.exists(img_path):
-                print(f"\n==== Processing {img_path} ====")
-                processor.card_reader(img_path)
-            else:
-                print(f"File does not exist: {img_path}")   
+            print(f"\n==== Processing {img_path} ====")
+            processor.card_reader(img_path)
     else:
-        print("Usage: python card_reader.py [--d] path1.tif path2.tif ...")
+        print("Usage: python run_card_reader.py [--d] [--j] <image_or_folder1> <image_or_folder2> ...")
         sys.exit(1)
