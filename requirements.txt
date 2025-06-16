@@ -1,0 +1,8 @@
+fuzzywuzzy
+paddleocr==2.10.0
+paddlepaddle
+torch
+torchvision
+ultralytics
+openpyxl
+python-Levenshtein

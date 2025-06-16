@@ -1,0 +1,5 @@
+venv
+myenv
+data
+pretrained_models
+*.csv
