@@ -3,6 +3,7 @@ import os
 import sys
 from card_reader_class import CardProcessor
 import subprocess
+import json
 
 def collect_images_from_path(path):
     """Return a list of valid image file paths from a given path."""

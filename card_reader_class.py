@@ -637,13 +637,15 @@ class CardProcessor:
         ]
         kv_string = "; ".join(kv_pairs)
 
-        # Create new data row as a DataFrame
-        new_row = pd.DataFrame([{
+        result = {
             "Image path": image_path,
             "Card type": card_type,
             "Dental markings": "Yes" if dental_markings else "No",
             "Key-value pairs": kv_string
-        }])
+        }
+
+        # Create new data row as a DataFrame
+        new_row = pd.DataFrame([result])
 
         # Append or create the CSV file
         if os.path.exists(file_path):
@@ -653,6 +655,9 @@ class CardProcessor:
         else:
             new_row.to_csv(file_path, index=False)
 
+        if self.to_json:
+            print("\n--- Converting to JSON output ---")
+            return json.dumps(result)
 
     def card_reader(self, image_path):
         input_img_path = image_path
@@ -694,30 +699,22 @@ class CardProcessor:
         self.debug_print("\n--- add dental markings to output dental markings ---")
         keys_corr["DENTAL_MARKINGS:"] = [(mark, round(conf, 3)) for mark, conf, _  in markings]
 
-        for key, values in keys_corr.items():
-            print(key)
-            for val in values:
-                print(val)
-            print()
-
-        self.debug_print("\n--- Saving to output file ---")
-        self.save_to_file(input_img_path, toc, bool(markings), keys_corr)
+        #for key, values in keys_corr.items():
+        #    print(key)
+        #    for val in values:
+        #        print(val)
+        #    print()
 
         # delete temporary image file if it exists
         if os.path.exists("temp/temp.tif"):
             os.remove("temp/temp.tif")  
 
+        self.debug_print("\n--- Saving to output file ---")
         if self.to_json:
-            print("\n--- Converting to JSON output ---")
-            result = {
-                "Image path": input_img_path,
-                "Card type": toc,
-                "Dental markings": "Yes" if markings else "No",
-                "Key-value pairs": {
-                    k: v for k, v in keys_corr.items()
-                }
-            }
-            return json.dumps(result) 
+            return self.save_to_file(input_img_path, toc, bool(markings), keys_corr)
+        else:
+            self.save_to_file(input_img_path, toc, bool(markings), keys_corr)
+
 
 if __name__ == "__main__":
     debug = "--d" in sys.argv
@@ -730,7 +727,13 @@ if __name__ == "__main__":
         processor = CardProcessor(debug=debug, to_json=to_json)
         for img_path in image_paths:
             print(f"\n==== Processing {img_path} ====")
-            processor.card_reader(img_path)
+            result = processor.card_reader(img_path)
+            #if result and to_json:
+            #    try:
+            #        json_output = json.loads(result)
+            #        print(json.dumps(json_output))
+            #    except (TypeError, ValueError) as e:
+            #        print("Error: Output is not valid JSON.", e)
     else:
         print("Usage: python run_card_reader.py [--d] [--j] <image_or_folder1> <image_or_folder2> ...")
         sys.exit(1)

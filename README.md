@@ -11,11 +11,12 @@
 
 Command:
 ```bash
-python run_card_reader.py [--d] <path_to_image1> <path_to_image2> ....
+python run_card_reader.py [--d] [--j] <path_to_image1> <path_to_image2> ....
 ```
 - <path_to_imageX>: One or more image paths to process.  (.tif, .png, .jpg are supported)
 - --d: (Optional) enables debug mode, which displays intermediate processing information
 such as template matching scores and overlay visualizations.
+- --j: (Optional) enables JSON output format. If this option is used, a JSON object for the current image processed will be returned. The CSV output will still be generated as well.
 
 The tool can also handle folders. If you provide a folder path, it will process all images in that folder and its subfolders.
 
